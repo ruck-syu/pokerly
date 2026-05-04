@@ -9,3 +9,7 @@ const int minBots = 2;
 const int maxBots = 3;
 
 const tableGreen = Color(0xFF0C6A48);
+const pokerDark = Color(0xFF081B14);
+const pokerDarkSurface = Color(0xFF11251D);
+const pokerGold = Color(0xFFD4AF37);
+const pokerGoldSoft = Color(0xFFB8962F);
