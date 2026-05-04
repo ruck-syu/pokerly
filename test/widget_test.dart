@@ -15,6 +15,6 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: PokerlyApp()));
 
     expect(find.text('Pokerly'), findsOneWidget);
-    expect(find.text('Start Game'), findsOneWidget);
+    expect(find.text('Start Bot Game'), findsOneWidget);
   });
 }
