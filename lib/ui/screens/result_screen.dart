@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants.dart';
 import '../../game/game_controller.dart';
 import '../../models/game_state.dart';
+import '../widgets/playing_card_widget.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({required this.state, super.key});
@@ -61,6 +62,47 @@ class ResultScreen extends ConsumerWidget {
                           ),
                         );
                       }),
+                      if (state.showdownValues.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Revealed Cards',
+                          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white70),
+                        ),
+                        const SizedBox(height: 8),
+                        ...state.showdownValues.entries.map((entry) {
+                          final player = state.players[entry.key];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    player.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                Wrap(
+                                  spacing: 6,
+                                  children: player.holeCards
+                                      .map(
+                                        (card) => PlayingCardWidget(
+                                          card: card,
+                                          faceUp: true,
+                                          width: 30,
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
                       const SizedBox(height: 12),
                       if (!state.isTournamentMode)
                         Row(
@@ -107,4 +149,3 @@ class ResultScreen extends ConsumerWidget {
     );
   }
 }
-

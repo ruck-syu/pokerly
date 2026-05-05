@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/constants.dart';
 
 class AppTheme {
   static ThemeData get dark {
-    const colorScheme = ColorScheme(
-      brightness: Brightness.dark,
+    const colorScheme = ColorScheme.dark(
       primary: pokerGold,
       onPrimary: Colors.black,
       secondary: Color(0xFF2A8C64),
@@ -16,17 +16,19 @@ class AppTheme {
       onSurface: Colors.white,
     );
 
+    final baseTextTheme = Typography.material2021().black;
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: pokerDark,
-      textTheme: const TextTheme(
-        headlineLarge: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.2),
-        headlineMedium: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.2),
-        titleLarge: TextStyle(fontWeight: FontWeight.w600),
-        titleMedium: TextStyle(fontWeight: FontWeight.w600),
-        bodyLarge: TextStyle(height: 1.35),
-        bodyMedium: TextStyle(height: 1.3),
+      textTheme: GoogleFonts.latoTextTheme(baseTextTheme).copyWith(
+        headlineLarge: GoogleFonts.lato(fontWeight: FontWeight.w700, letterSpacing: 0.2, color: Colors.white),
+        headlineMedium: GoogleFonts.lato(fontWeight: FontWeight.w700, letterSpacing: 0.2, color: Colors.white),
+        titleLarge: GoogleFonts.lato(fontWeight: FontWeight.w600, color: Colors.white),
+        titleMedium: GoogleFonts.lato(fontWeight: FontWeight.w600, color: Colors.white),
+        bodyLarge: GoogleFonts.lato(height: 1.35, color: Colors.white),
+        bodyMedium: GoogleFonts.lato(height: 1.3, color: Colors.white),
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,

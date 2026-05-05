@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/constants.dart' as constants;
 import '../../game/game_controller.dart';
@@ -31,6 +32,12 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
+                    SvgPicture.asset(
+                      'assets/logo.svg',
+                      height: isCompact ? 100 : 140,
+                      width: isCompact ? 100 : 140,
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       'Pokerly',
                       textAlign: TextAlign.center,
