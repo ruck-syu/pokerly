@@ -103,6 +103,7 @@ jobs:
         run: |
           mkdir -p dmg_folder
           cp -r build/macos/Build/Products/Release/Pokerly.app dmg_folder/
+          ln -s /Applications dmg_folder/Applications
           hdiutil create -volname "Pokerly" -srcfolder dmg_folder -ov -format UDZO Pokerly-macOS.dmg
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
