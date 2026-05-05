@@ -175,7 +175,7 @@ class _PokerTableState extends State<PokerTable> with SingleTickerProviderStateM
                   child: PlayerSeat(
                     player: state.players[i],
                     isActive: !state.isHandComplete && state.currentTurnIndex == i,
-                    faceUp: !state.players[i].isBot || state.phase == BettingRound.showdown,
+                    faceUp: state.phase == BettingRound.showdown || widget.localPlayerIndex == i,
                     scale: seatScale,
                     isDealer: state.dealerIndex == i,
                     compact: compactSeats,
