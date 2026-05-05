@@ -198,9 +198,10 @@ class _PlayerSeatState extends State<PlayerSeat> with SingleTickerProviderStateM
                   )
                   .toList(growable: false),
             ),
-            if (player.hasFolded) Text('Folded', style: TextStyle(color: Colors.orangeAccent, fontSize: widget.compact ? 10 : 11)),
+            if (player.hasFolded && !player.isSittingOut) Text('Folded', style: TextStyle(color: Colors.orangeAccent, fontSize: widget.compact ? 10 : 11)),
             if (player.isAllIn) Text('All-in', style: TextStyle(color: Colors.cyanAccent, fontSize: widget.compact ? 10 : 11)),
             if (player.isBusted) Text('Busted', style: TextStyle(color: Colors.redAccent, fontSize: widget.compact ? 10 : 11)),
+            if (player.isSittingOut) Text('Sitting Out', style: TextStyle(color: Colors.grey, fontSize: widget.compact ? 10 : 11)),
           ],
         ),
       ),

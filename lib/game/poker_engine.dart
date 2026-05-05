@@ -15,6 +15,14 @@ class PlayerAction {
 
 class PokerEngine {
   GameState startNewHand(GameState previousState) {
+    final nextHandNumber = previousState.handNumber + 1;
+    final tournamentLevel = previousState.isTournamentMode
+        ? (((nextHandNumber - 1) ~/ previousState.handsPerLevel) + 1)
+        : 1;
+    final blindMultiplier = previousState.isTournamentMode ? (1 << (tournamentLevel - 1)) : 1;
+    final appliedSmallBlind = previousState.initialSmallBlind * blindMultiplier;
+    final appliedBigBlind = previousState.initialBigBlind * blindMultiplier;
+
     final players = previousState.players.map((p) {
       final busted = p.chips <= 0;
       return p.copyWith(
@@ -43,6 +51,7 @@ class PokerEngine {
 
     var deck = Deck.standard52();
     var updatedPlayers = players.toList();
+    final contributions = List<int>.filled(players.length, 0, growable: false);
 
     for (var round = 0; round < 2; round++) {
       for (final index in _orderedFrom(dealerIndex, players)) {
@@ -59,24 +68,26 @@ class PokerEngine {
     }
 
     var pot = 0;
-    final sbCommit = updatedPlayers[smallBlindIndex].chips < previousState.smallBlind
+    final sbCommit = updatedPlayers[smallBlindIndex].chips < appliedSmallBlind
         ? updatedPlayers[smallBlindIndex].chips
-        : previousState.smallBlind;
+        : appliedSmallBlind;
     updatedPlayers[smallBlindIndex] = _commitChips(
       updatedPlayers[smallBlindIndex],
       sbCommit,
       action: 'SB $sbCommit',
     );
+    contributions[smallBlindIndex] += sbCommit;
     pot += sbCommit;
 
-    final bbCommit = updatedPlayers[bigBlindIndex].chips < previousState.bigBlind
+    final bbCommit = updatedPlayers[bigBlindIndex].chips < appliedBigBlind
         ? updatedPlayers[bigBlindIndex].chips
-        : previousState.bigBlind;
+        : appliedBigBlind;
     updatedPlayers[bigBlindIndex] = _commitChips(
       updatedPlayers[bigBlindIndex],
       bbCommit,
       action: 'BB $bbCommit',
     );
+    contributions[bigBlindIndex] += bbCommit;
     pot += bbCommit;
 
     final currentBet = bbCommit > sbCommit ? bbCommit : sbCommit;
@@ -90,15 +101,21 @@ class PokerEngine {
       dealerIndex: dealerIndex,
       currentTurnIndex: firstToAct,
       currentBet: currentBet,
-      minRaise: previousState.bigBlind,
+      minRaise: appliedBigBlind,
       phase: BettingRound.preFlop,
       actedPlayerIndexes: const <int>{},
       lastChipSourceIndex: bigBlindIndex,
-      handNumber: previousState.handNumber + 1,
+      handNumber: nextHandNumber,
       isHandComplete: false,
       winnerIndexes: const [],
       showdownValues: const {},
-      handMessage: 'Hand ${previousState.handNumber + 1}',
+      handMessage: previousState.isTournamentMode
+          ? 'Hand $nextHandNumber • Level $tournamentLevel'
+          : 'Hand $nextHandNumber',
+      totalContributions: contributions,
+      smallBlind: appliedSmallBlind,
+      bigBlind: appliedBigBlind,
+      blindLevel: tournamentLevel,
     );
   }
 
@@ -121,6 +138,7 @@ class PokerEngine {
     var acted = state.actedPlayerIndexes.toSet();
     var chipSource = state.lastChipSourceIndex;
     var message = state.handMessage;
+    final totalContributions = state.totalContributions.toList(growable: false);
 
     switch (action.type) {
       case PlayerActionType.fold:
@@ -142,6 +160,7 @@ class PokerEngine {
         }
         final commit = actor.chips < toCall ? actor.chips : toCall;
         players[actorIndex] = _commitChips(actor, commit, action: 'Call $commit');
+        totalContributions[actorIndex] += commit;
         pot += commit;
         chipSource = actorIndex;
         acted.add(actorIndex);
@@ -165,6 +184,7 @@ class PokerEngine {
           return state;
         }
         players[actorIndex] = _commitChips(actor, commit, action: 'Raise $legalRaiseTo');
+        totalContributions[actorIndex] += commit;
         pot += commit;
         final raiseSize = legalRaiseTo - currentBet;
         if (raiseSize > 0) {
@@ -189,6 +209,7 @@ class PokerEngine {
         winnerIndexes: [winnerIndex],
         showdownValues: const {},
         handMessage: '${winner.name} wins $pot (everyone else folded).',
+        totalContributions: totalContributions,
       );
     }
 
@@ -200,6 +221,7 @@ class PokerEngine {
       actedPlayerIndexes: acted,
       lastChipSourceIndex: chipSource,
       handMessage: message,
+      totalContributions: totalContributions,
     );
 
     if (_isBettingRoundComplete(updated)) {
@@ -251,8 +273,11 @@ class PokerEngine {
     );
 
     if (!_anyCanAct(updated.players)) {
-      while (updated.phase != BettingRound.river) {
+      while (updated.phase != BettingRound.river && updated.phase != BettingRound.showdown) {
         updated = _advanceRound(updated);
+      }
+      if (updated.phase == BettingRound.showdown) {
+        return updated;
       }
       return _resolveShowdown(updated);
     }
@@ -276,39 +301,102 @@ class PokerEngine {
       );
     }
 
-    HandValue? best;
-    for (final value in handValues.values) {
-      if (best == null || value.compareTo(best) > 0) {
-        best = value;
-      }
-    }
-
-    final winners = handValues.entries.where((e) => e.value.compareTo(best!) == 0).map((e) => e.key).toList();
-    final share = state.pot ~/ winners.length;
-    final remainder = state.pot % winners.length;
-
     final players = state.players.toList();
-    for (var i = 0; i < winners.length; i++) {
-      final winnerIndex = winners[i];
-      final bonus = i == 0 ? remainder : 0;
-      final winner = players[winnerIndex];
-      players[winnerIndex] = winner.copyWith(
-        chips: winner.chips + share + bonus,
-        lastAction: 'Won ${share + bonus}',
-      );
-    }
-
+    final winners = _resolveSidePots(
+      state: state,
+      handValues: handValues,
+      players: players,
+    );
     final winnerNames = winners.map((i) => players[i].name).join(', ');
-    final handName = best?.describe() ?? 'Showdown';
+    final isSplit = winners.length > 1;
     return state.copyWith(
       players: players,
       phase: BettingRound.showdown,
       isHandComplete: true,
       winnerIndexes: winners,
       showdownValues: handValues,
-      handMessage: '$winnerNames won with $handName',
+      handMessage: winnerNames.isEmpty 
+          ? 'Showdown resolved.' 
+          : (isSplit ? 'Split pot: $winnerNames' : '$winnerNames won at showdown'),
       clearChipSource: true,
     );
+  }
+
+  List<int> _resolveSidePots({
+    required GameState state,
+    required Map<int, HandValue> handValues,
+    required List<Player> players,
+  }) {
+    final contributions = state.totalContributions;
+    final positiveLevels = contributions.where((c) => c > 0).toSet().toList()..sort();
+    final winners = <int>{};
+    var previousLevel = 0;
+
+    for (final level in positiveLevels) {
+      final participants = <int>[];
+      for (var i = 0; i < contributions.length; i++) {
+        if (contributions[i] >= level) {
+          participants.add(i);
+        }
+      }
+      final potAmount = (level - previousLevel) * participants.length;
+      previousLevel = level;
+      if (potAmount <= 0) {
+        continue;
+      }
+
+      final eligible = participants.where((i) => !players[i].hasFolded && !players[i].isBusted).toList(growable: false);
+      if (eligible.isEmpty) {
+        continue;
+      }
+      final potWinners = _bestIndexes(eligible, handValues);
+      final share = potAmount ~/ potWinners.length;
+      final remainder = potAmount % potWinners.length;
+
+      for (var i = 0; i < potWinners.length; i++) {
+        final winnerIndex = potWinners[i];
+        final bonus = i < remainder ? 1 : 0;
+        final winner = players[winnerIndex];
+        
+        final currentWonMatch = RegExp(r'Won (\d+)').firstMatch(winner.lastAction);
+        final previouslyWon = currentWonMatch != null ? int.parse(currentWonMatch.group(1)!) : 0;
+        final totalWon = previouslyWon + share + bonus;
+
+        players[winnerIndex] = winner.copyWith(
+          chips: winner.chips + share + bonus,
+          lastAction: 'Won $totalWon',
+        );
+        winners.add(winnerIndex);
+      }
+    }
+
+    return winners.toList(growable: false);
+  }
+
+  List<int> _bestIndexes(List<int> candidates, Map<int, HandValue> values) {
+    HandValue? best;
+    final bestIndexes = <int>[];
+    for (final index in candidates) {
+      final value = values[index];
+      if (value == null) continue;
+      if (best == null) {
+        best = value;
+        bestIndexes
+          ..clear()
+          ..add(index);
+        continue;
+      }
+      final cmp = value.compareTo(best);
+      if (cmp > 0) {
+        best = value;
+        bestIndexes
+          ..clear()
+          ..add(index);
+      } else if (cmp == 0) {
+        bestIndexes.add(index);
+      }
+    }
+    return bestIndexes;
   }
 
   bool _isBettingRoundComplete(GameState state) {
@@ -356,7 +444,7 @@ class PokerEngine {
   int _nextFrom(int from, List<Player> players, {required bool includeCurrent}) {
     for (var step = includeCurrent ? 0 : 1; step <= players.length; step++) {
       final idx = (from + step) % players.length;
-      if (!players[idx].isBusted && players[idx].chips > 0) {
+      if (!players[idx].isBusted && !players[idx].isSittingOut && players[idx].chips > 0) {
         return idx;
       }
     }

@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants.dart';
+import '../../game/game_controller.dart';
 import '../../models/game_state.dart';
 
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends ConsumerWidget {
   const ResultScreen({required this.state, super.key});
 
   final GameState state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(gameControllerProvider.notifier);
+    final localIndex = controller.localPlayerIndex;
+    final localPlayer = state.players[localIndex];
+    final canRebuy = !state.isTournamentMode && localPlayer.chips < state.initialBigBlind * 10;
+    final isSittingOut = localPlayer.isSittingOut;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Hand Result')),
       body: DecoratedBox(
@@ -54,6 +62,36 @@ class ResultScreen extends StatelessWidget {
                         );
                       }),
                       const SizedBox(height: 12),
+                      if (!state.isTournamentMode)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  controller.toggleSitOut();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(isSittingOut ? 'You will return next hand' : 'You will sit out next hand')),
+                                  );
+                                },
+                                child: Text(isSittingOut ? 'Return to Table' : 'Sit Out'),
+                              ),
+                            ),
+                            if (canRebuy) const SizedBox(width: 8),
+                            if (canRebuy)
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    controller.rebuy(state.initialBigBlind * 100);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Rebought 100 BB')),
+                                    );
+                                  },
+                                  child: const Text('Rebuy'),
+                                ),
+                              ),
+                          ],
+                        ),
+                      if (!state.isTournamentMode) const SizedBox(height: 12),
                       FilledButton(
                         onPressed: () => Navigator.of(context).pop(true),
                         child: const Text('Next Hand'),
@@ -69,3 +107,4 @@ class ResultScreen extends StatelessWidget {
     );
   }
 }
+
