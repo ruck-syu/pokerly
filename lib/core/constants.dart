@@ -6,7 +6,7 @@ const int bigBlind = 50;
 const Duration botActionDelay = Duration(milliseconds: 800);
 
 const int minBots = 2;
-const int maxBots = 3;
+const int maxBots = 5;
 
 const tableGreen = Color(0xFF0C6A48);
 const pokerDark = Color(0xFF081B14);

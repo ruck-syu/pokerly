@@ -1,6 +1,6 @@
 {
-    "name": "pokerly",
-    "short_name": "pokerly",
+    "name": "Pokerly",
+    "short_name": "Pokerly",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -8,9 +8,10 @@ import 'player_seat.dart';
 import 'playing_card_widget.dart';
 
 class PokerTable extends StatefulWidget {
-  const PokerTable({required this.state, super.key});
+  const PokerTable({required this.state, this.localPlayerIndex, super.key});
 
   final GameState state;
+  final int? localPlayerIndex;
 
   @override
   State<PokerTable> createState() => _PokerTableState();
@@ -178,7 +179,7 @@ class _PokerTableState extends State<PokerTable> with SingleTickerProviderStateM
                     scale: seatScale,
                     isDealer: state.dealerIndex == i,
                     compact: compactSeats,
-                    cardWidth: seatCardWidth,
+                    cardWidth: (widget.localPlayerIndex == i || (widget.localPlayerIndex == null && !state.players[i].isBot)) ? seatCardWidth * 1.4 : seatCardWidth,
                   ),
                 ),
               ),

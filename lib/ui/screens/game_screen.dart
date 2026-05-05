@@ -55,6 +55,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       appBar: AppBar(
         title: Text('Texas Hold\'em - Hand ${state.handNumber}'),
         actions: [
+          if (state.isTournamentMode)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Level ${state.blindLevel} • ${state.smallBlind}/${state.bigBlind}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
           Center(
             child: Container(
               margin: const EdgeInsets.only(right: 8),
@@ -93,7 +108,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Expanded(child: PokerTable(state: state)),
+            Expanded(child: PokerTable(state: state, localPlayerIndex: localIndex)),
             const SizedBox(height: 10),
             _ActionBar(
               enabled: isHumanTurn,

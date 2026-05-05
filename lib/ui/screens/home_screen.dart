@@ -43,7 +43,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Play Texas Hold\'em your way: solo with bots or local LAN co-op.',
+                      'Play Texas Hold\'em your way.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
@@ -53,7 +53,7 @@ class HomeScreen extends ConsumerWidget {
                         crossAxisCount: isCompact ? 1 : 3,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: isCompact ? 3.2 : 1.55,
+                        childAspectRatio: isCompact ? 2.55 : 1.35,
                       ),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -89,12 +89,6 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Blinds ${constants.smallBlind}/${constants.bigBlind} • ${constants.startingChips} chips each',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12, color: Colors.white60),
-                    ),
                   ],
                 ),
               ),
@@ -107,21 +101,28 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _showBotSetupDialog(BuildContext context, WidgetRef ref) async {
     var selectedBots = constants.maxBots;
-    final count = await showModalBottomSheet<int>(
+    var selectedStartingChips = constants.startingChips;
+    var selectedSmallBlind = constants.smallBlind;
+    var selectedBigBlind = constants.bigBlind;
+    var tournamentMode = false;
+    var handsPerLevel = 5;
+    final setup = await showModalBottomSheet<({int bots, int chips, int sb, int bb, bool tournament, int handsPerLevel})>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 22),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 22 + MediaQuery.viewInsetsOf(context).bottom),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   const Text('Start Bot Game', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
-                  const Text('Choose how many bots to add at the table.'),
+                  const Text('Choose bots, chips, and blinds for this game.'),
                   const SizedBox(height: 14),
                   DropdownButtonFormField<int>(
                     initialValue: selectedBots,
@@ -138,12 +139,100 @@ class HomeScreen extends ConsumerWidget {
                       }
                     },
                   ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: () => Navigator.of(context).pop(selectedBots),
-                    child: const Text('Start Bot Game'),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedStartingChips,
+                    decoration: const InputDecoration(labelText: 'Starting chips'),
+                    items: const [
+                      DropdownMenuItem(value: 1000, child: Text('1000')),
+                      DropdownMenuItem(value: 1500, child: Text('1500')),
+                      DropdownMenuItem(value: 2000, child: Text('2000')),
+                      DropdownMenuItem(value: 3000, child: Text('3000')),
+                      DropdownMenuItem(value: 5000, child: Text('5000')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => selectedStartingChips = value);
+                      }
+                    },
                   ),
-                ],
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedSmallBlind,
+                    decoration: const InputDecoration(labelText: 'Small blind'),
+                    items: const [
+                      DropdownMenuItem(value: 10, child: Text('10')),
+                      DropdownMenuItem(value: 25, child: Text('25')),
+                      DropdownMenuItem(value: 50, child: Text('50')),
+                      DropdownMenuItem(value: 100, child: Text('100')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedSmallBlind = value;
+                          if (selectedBigBlind <= selectedSmallBlind) {
+                            selectedBigBlind = selectedSmallBlind * 2;
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedBigBlind,
+                    decoration: const InputDecoration(labelText: 'Big blind'),
+                    items: const [
+                      DropdownMenuItem(value: 20, child: Text('20')),
+                      DropdownMenuItem(value: 50, child: Text('50')),
+                      DropdownMenuItem(value: 100, child: Text('100')),
+                      DropdownMenuItem(value: 200, child: Text('200')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => selectedBigBlind = value > selectedSmallBlind ? value : (selectedSmallBlind * 2));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  SwitchListTile.adaptive(
+                    value: tournamentMode,
+                    title: const Text('Tournament mode'),
+                    subtitle: const Text('Blinds increase by level'),
+                    onChanged: (value) => setState(() => tournamentMode = value),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  if (tournamentMode) ...[
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      initialValue: handsPerLevel,
+                      decoration: const InputDecoration(labelText: 'Hands per blind level'),
+                      items: const [
+                        DropdownMenuItem(value: 2, child: Text('2 hands')),
+                        DropdownMenuItem(value: 3, child: Text('3 hands')),
+                        DropdownMenuItem(value: 5, child: Text('5 hands')),
+                        DropdownMenuItem(value: 8, child: Text('8 hands')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => handsPerLevel = value);
+                        }
+                      },
+                    ),
+                  ],
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop((
+                        bots: selectedBots,
+                        chips: selectedStartingChips,
+                        sb: selectedSmallBlind,
+                        bb: selectedBigBlind,
+                        tournament: tournamentMode,
+                        handsPerLevel: handsPerLevel,
+                      )),
+                      child: const Text('Start Bot Game'),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -151,8 +240,15 @@ class HomeScreen extends ConsumerWidget {
       },
     );
 
-    if (count == null || !context.mounted) return;
-    ref.read(gameControllerProvider.notifier).startGame(botCount: count);
+    if (setup == null || !context.mounted) return;
+    ref.read(gameControllerProvider.notifier).startGame(
+          botCount: setup.bots,
+          startingChips: setup.chips,
+          smallBlind: setup.sb,
+          bigBlind: setup.bb,
+          tournamentMode: setup.tournament,
+          handsPerLevel: setup.handsPerLevel,
+        );
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GameScreen()));
   }
 }

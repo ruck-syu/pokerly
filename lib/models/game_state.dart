@@ -25,6 +25,12 @@ class GameState {
     required this.winnerIndexes,
     required this.showdownValues,
     required this.handMessage,
+    required this.totalContributions,
+    required this.isTournamentMode,
+    required this.handsPerLevel,
+    required this.blindLevel,
+    required this.initialSmallBlind,
+    required this.initialBigBlind,
   });
 
   final List<Player> players;
@@ -45,11 +51,19 @@ class GameState {
   final List<int> winnerIndexes;
   final Map<int, HandValue> showdownValues;
   final String handMessage;
+  final List<int> totalContributions;
+  final bool isTournamentMode;
+  final int handsPerLevel;
+  final int blindLevel;
+  final int initialSmallBlind;
+  final int initialBigBlind;
 
   factory GameState.initial({
     required List<Player> players,
     required int smallBlind,
     required int bigBlind,
+    bool isTournamentMode = false,
+    int handsPerLevel = 5,
   }) {
     return GameState(
       players: List.unmodifiable(players),
@@ -70,6 +84,12 @@ class GameState {
       winnerIndexes: const [],
       showdownValues: const {},
       handMessage: '',
+      totalContributions: List<int>.filled(players.length, 0, growable: false),
+      isTournamentMode: isTournamentMode,
+      handsPerLevel: handsPerLevel,
+      blindLevel: 1,
+      initialSmallBlind: smallBlind,
+      initialBigBlind: bigBlind,
     );
   }
 
@@ -97,6 +117,12 @@ class GameState {
     List<int>? winnerIndexes,
     Map<int, HandValue>? showdownValues,
     String? handMessage,
+    List<int>? totalContributions,
+    bool? isTournamentMode,
+    int? handsPerLevel,
+    int? blindLevel,
+    int? initialSmallBlind,
+    int? initialBigBlind,
   }) {
     return GameState(
       players: List.unmodifiable(players ?? this.players),
@@ -117,6 +143,12 @@ class GameState {
       winnerIndexes: List.unmodifiable(winnerIndexes ?? this.winnerIndexes),
       showdownValues: Map.unmodifiable(showdownValues ?? this.showdownValues),
       handMessage: handMessage ?? this.handMessage,
+      totalContributions: List.unmodifiable(totalContributions ?? this.totalContributions),
+      isTournamentMode: isTournamentMode ?? this.isTournamentMode,
+      handsPerLevel: handsPerLevel ?? this.handsPerLevel,
+      blindLevel: blindLevel ?? this.blindLevel,
+      initialSmallBlind: initialSmallBlind ?? this.initialSmallBlind,
+      initialBigBlind: initialBigBlind ?? this.initialBigBlind,
     );
   }
 }

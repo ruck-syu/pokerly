@@ -24,14 +24,23 @@ Map<String, dynamic> gameStateToJson(GameState state) {
     'winnerIndexes': state.winnerIndexes,
     'showdownValues': state.showdownValues.map((k, v) => MapEntry(k.toString(), handValueToJson(v))),
     'handMessage': state.handMessage,
+    'totalContributions': state.totalContributions,
+    'isTournamentMode': state.isTournamentMode,
+    'handsPerLevel': state.handsPerLevel,
+    'blindLevel': state.blindLevel,
+    'initialSmallBlind': state.initialSmallBlind,
+    'initialBigBlind': state.initialBigBlind,
   };
 }
 
 GameState gameStateFromJson(Map<String, dynamic> json) {
+  final players = (json['players'] as List<dynamic>)
+      .map((e) => playerFromJson(Map<String, dynamic>.from(e as Map)))
+      .toList(growable: false);
+  final contributions = ((json['totalContributions'] as List<dynamic>?)?.map((e) => e as int).toList(growable: false)) ??
+      List<int>.filled(players.length, 0, growable: false);
   return GameState(
-    players: (json['players'] as List<dynamic>)
-        .map((e) => playerFromJson(Map<String, dynamic>.from(e as Map)))
-        .toList(growable: false),
+    players: players,
     communityCards: (json['communityCards'] as List<dynamic>)
         .map((e) => cardFromJson(Map<String, dynamic>.from(e as Map)))
         .toList(growable: false),
@@ -53,6 +62,14 @@ GameState gameStateFromJson(Map<String, dynamic> json) {
       (key, value) => MapEntry(int.parse(key), handValueFromJson(Map<String, dynamic>.from(value as Map))),
     ),
     handMessage: json['handMessage'] as String? ?? '',
+    totalContributions: contributions.length == players.length
+        ? contributions
+        : List<int>.filled(players.length, 0, growable: false),
+    isTournamentMode: json['isTournamentMode'] as bool? ?? false,
+    handsPerLevel: json['handsPerLevel'] as int? ?? 5,
+    blindLevel: json['blindLevel'] as int? ?? 1,
+    initialSmallBlind: json['initialSmallBlind'] as int? ?? (json['smallBlind'] as int),
+    initialBigBlind: json['initialBigBlind'] as int? ?? (json['bigBlind'] as int),
   );
 }
 
@@ -68,6 +85,7 @@ Map<String, dynamic> playerToJson(Player player) {
     'hasFolded': player.hasFolded,
     'isAllIn': player.isAllIn,
     'isBusted': player.isBusted,
+    'isSittingOut': player.isSittingOut,
     'lastAction': player.lastAction,
   };
 }
@@ -86,6 +104,7 @@ Player playerFromJson(Map<String, dynamic> json) {
     hasFolded: json['hasFolded'] as bool? ?? false,
     isAllIn: json['isAllIn'] as bool? ?? false,
     isBusted: json['isBusted'] as bool? ?? false,
+    isSittingOut: json['isSittingOut'] as bool? ?? false,
     lastAction: json['lastAction'] as String? ?? '',
   );
 }

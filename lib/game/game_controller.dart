@@ -22,7 +22,10 @@ class GameController extends StateNotifier<GameState> {
       : _engine = PokerEngine(),
         super(
           GameState.initial(
-            players: _buildPlayers(botCount: constants.maxBots),
+            players: _buildPlayers(
+              botCount: constants.maxBots,
+              startingChips: constants.startingChips,
+            ),
             smallBlind: constants.smallBlind,
             bigBlind: constants.bigBlind,
           ),
@@ -63,12 +66,15 @@ class GameController extends StateNotifier<GameState> {
     return state.currentTurnIndex == localPlayerIndex;
   }
 
-  static List<Player> _buildPlayers({required int botCount}) {
+  static List<Player> _buildPlayers({
+    required int botCount,
+    required int startingChips,
+  }) {
     final players = <Player>[
-      const Player(
+      Player(
         id: 'human',
         name: 'You',
-        chips: constants.startingChips,
+        chips: startingChips,
         isBot: false,
         aiLevel: 0,
       ),
@@ -80,7 +86,7 @@ class GameController extends StateNotifier<GameState> {
         Player(
           id: 'bot_$i',
           name: 'Bot ${i + 1}',
-          chips: constants.startingChips,
+          chips: startingChips,
           isBot: true,
           aiLevel: personalityLevels[i % personalityLevels.length],
         ),
@@ -92,6 +98,9 @@ class GameController extends StateNotifier<GameState> {
   Future<void> startLanHostSession({
     required HostSession session,
     required List<LanPlayerInfo> lobbyPlayers,
+    required int startingChips,
+    required int smallBlind,
+    required int bigBlind,
   }) async {
     await _clearLanSession();
     _lanRole = LanRole.host;
@@ -104,7 +113,7 @@ class GameController extends StateNotifier<GameState> {
           (p) => Player(
             id: p.id,
             name: p.name,
-            chips: constants.startingChips,
+            chips: startingChips,
             isBot: false,
             aiLevel: 0,
           ),
@@ -113,8 +122,8 @@ class GameController extends StateNotifier<GameState> {
 
     state = GameState.initial(
       players: players,
-      smallBlind: constants.smallBlind,
-      bigBlind: constants.bigBlind,
+      smallBlind: smallBlind,
+      bigBlind: bigBlind,
     );
     state = _engine.startNewHand(state);
     await session.broadcast({
@@ -135,16 +144,31 @@ class GameController extends StateNotifier<GameState> {
     _clientSub = session.messages.listen(_onClientMessage);
   }
 
-  void startGame({required int botCount}) {
+  void startGame({
+    required int botCount,
+    int? startingChips,
+    int? smallBlind,
+    int? bigBlind,
+    bool tournamentMode = false,
+    int handsPerLevel = 5,
+  }) {
+    final configuredStartingChips = startingChips ?? constants.startingChips;
+    final configuredSmallBlind = smallBlind ?? constants.smallBlind;
+    final configuredBigBlind = bigBlind ?? constants.bigBlind;
     _lanRole = LanRole.none;
     _localPlayerId = 'human';
     _awaitingHostAck = false;
-    final players = _buildPlayers(botCount: botCount);
+    final players = _buildPlayers(
+      botCount: botCount,
+      startingChips: configuredStartingChips,
+    );
     _botAi.resetMemory();
     state = GameState.initial(
       players: players,
-      smallBlind: constants.smallBlind,
-      bigBlind: constants.bigBlind,
+      smallBlind: configuredSmallBlind,
+      bigBlind: configuredBigBlind,
+      isTournamentMode: tournamentMode,
+      handsPerLevel: handsPerLevel,
     );
     state = _engine.startNewHand(state);
     SoundService.playDeal();
@@ -155,6 +179,28 @@ class GameController extends StateNotifier<GameState> {
     state = _engine.startNewHand(state);
     SoundService.playDeal();
     _maybeRunBotTurn();
+    if (isLanHost) {
+      unawaited(_broadcastStateUpdate());
+    }
+  }
+
+  void toggleSitOut() {
+    if (isLanClient) return; // TODO: Implement for LAN clients if needed
+    final players = state.players.toList(growable: false);
+    final p = players[localPlayerIndex];
+    players[localPlayerIndex] = p.copyWith(isSittingOut: !p.isSittingOut);
+    state = state.copyWith(players: players);
+    if (isLanHost) {
+      unawaited(_broadcastStateUpdate());
+    }
+  }
+
+  void rebuy(int amount) {
+    if (isLanClient) return; // TODO: Implement for LAN clients if needed
+    final players = state.players.toList(growable: false);
+    final p = players[localPlayerIndex];
+    players[localPlayerIndex] = p.copyWith(chips: p.chips + amount);
+    state = state.copyWith(players: players);
     if (isLanHost) {
       unawaited(_broadcastStateUpdate());
     }

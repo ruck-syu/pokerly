@@ -12,6 +12,7 @@ class Player {
     this.hasFolded = false,
     this.isAllIn = false,
     this.isBusted = false,
+    this.isSittingOut = false,
     this.lastAction = '',
   });
 
@@ -25,6 +26,7 @@ class Player {
   final bool hasFolded;
   final bool isAllIn;
   final bool isBusted;
+  final bool isSittingOut;
   final String lastAction;
 
   Player copyWith({
@@ -38,6 +40,7 @@ class Player {
     bool? hasFolded,
     bool? isAllIn,
     bool? isBusted,
+    bool? isSittingOut,
     String? lastAction,
   }) {
     return Player(
@@ -51,6 +54,7 @@ class Player {
       hasFolded: hasFolded ?? this.hasFolded,
       isAllIn: isAllIn ?? this.isAllIn,
       isBusted: isBusted ?? this.isBusted,
+      isSittingOut: isSittingOut ?? this.isSittingOut,
       lastAction: lastAction ?? this.lastAction,
     );
   }
